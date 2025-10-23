@@ -1,5 +1,5 @@
-function App() {
-  return <h1>Hello</h1>;
-}
+import MapWidget from './ui/widgets/MapWidget';
 
-export default App;
+export default function App() {
+  return <MapWidget />;
+}
