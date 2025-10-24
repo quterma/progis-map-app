@@ -17,9 +17,18 @@ npm install
 npm run dev
 ```
 
+## Features
+
+- Leaflet map with OSM base tiles
+- Toggleable WMS overlay (OSM-WMS demo)
+- Identify (WMS GetFeatureInfo) on click over `topp:states` (via Vite proxy)
+- Clean, modular structure (domain / infrastructure / ui / shared)
+- Optional auto-center to user location (fallback to USA)
+- Identify by zoom: address at high zoom; country at low zoom
+
 ## Architecture
 
-domain — core types and logic,
-infrastructure — adapters for map & services,
-ui — React components (MapWidget),
-shared — config/utils.
+Domain (core types/use-cases, library-agnostic)
+Infrastructure (Leaflet & OGC adapters)
+UI (MapWidget + LayersPanel)
+Shared (config/utils). For MVP, the UI calls adapter methods directly; domain interfaces are prepared for future decoupling.
