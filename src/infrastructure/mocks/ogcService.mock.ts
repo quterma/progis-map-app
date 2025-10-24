@@ -10,7 +10,7 @@ export const ogcMock: OGCServicePort = {
   },
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async identifyAt(input: {
+  async identifyAt(_input: {
     layerId: string;
     point: Point;
     view: MapState;
