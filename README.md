@@ -3,6 +3,10 @@
 A lightweight **React + TypeScript** demo application for displaying and querying geospatial data (WMS/OGC).  
 Built with **Vite** and **Leaflet**, following a minimal clean-architecture approach.
 
+## Deployed on gh-pages
+
+https://quterma.github.io/progis-map-app/
+
 ## Features
 
 - Leaflet map with OSM base tiles
