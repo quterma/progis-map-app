@@ -1,14 +1,18 @@
 # Progis Map App
 
-A lightweight React + TypeScript demo application displaying geospatial data via WMS (OGC) services.  
-Built with **Vite** and **Leaflet**, following a simple clean-architecture pattern.
+A lightweight **React + TypeScript** demo application for displaying and querying geospatial data (WMS/OGC).  
+Built with **Vite** and **Leaflet**, following a minimal clean-architecture approach.
 
 ## Features
 
-- Map rendering with Leaflet and OSM base tiles
-- WMS layer integration (`topp:states` demo via proxy)
-- Identify (GetFeatureInfo) on map click → popup with feature attributes
-- Modular folder structure (domain / app / infrastructure / ui / shared)
+- Leaflet map with OSM base tiles
+- Toggleable WMS overlay (OSM-WMS demo layer)
+- Identify (WMS GetFeatureInfo) → popup with feature attributes
+- Smart hybrid identify:
+  - reverse geocode (street/building) on high zoom via OpenStreetMap Nominatim
+  - country info via WMS on low zoom
+- Optional auto-center to user geolocation (fallback → USA)
+- Modular folder structure: `domain / infrastructure / ui / shared`
 
 ## Run locally
 
@@ -17,18 +21,11 @@ npm install
 npm run dev
 ```
 
-## Features
-
-- Leaflet map with OSM base tiles
-- Toggleable WMS overlay (OSM-WMS demo)
-- Identify (WMS GetFeatureInfo) on click over `topp:states` (via Vite proxy)
-- Clean, modular structure (domain / infrastructure / ui / shared)
-- Optional auto-center to user location (fallback to USA)
-- Identify by zoom: address at high zoom; country at low zoom
-
 ## Architecture
 
-Domain (core types/use-cases, library-agnostic)
-Infrastructure (Leaflet & OGC adapters)
-UI (MapWidget + LayersPanel)
-Shared (config/utils). For MVP, the UI calls adapter methods directly; domain interfaces are prepared for future decoupling.
+Domain – core types and use-cases (UI-agnostic)
+Infrastructure – Leaflet & OGC adapters
+UI – MapWidget + LayersPanel
+Shared – configs & utils
+
+For MVP the UI directly uses adapter calls; domain interfaces are prepared for future separation.
