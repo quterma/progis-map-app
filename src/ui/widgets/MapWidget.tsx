@@ -24,6 +24,9 @@ export default function MapWidget() {
     Object.fromEntries(LAYERS.map((l) => [l.id, false])),
   );
 
+  const isProdGh =
+    typeof location !== 'undefined' && location.hostname.endsWith('github.io');
+
   // init map once
   useEffect(() => {
     if (!ref.current) return;
@@ -31,16 +34,14 @@ export default function MapWidget() {
     setH(handle);
     setReady(true);
 
-    // геолокация → центр (без ошибок и гонок)
+    // геолокация → центр (фолбэк USA)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
           whenReady(handle, () => setView(handle, [latitude, longitude], 10));
         },
-        () => {
-          /* игнорируем — останется дефолт USA */
-        },
+        () => {},
         { enableHighAccuracy: false, timeout: 3000 },
       );
     }
@@ -56,8 +57,8 @@ export default function MapWidget() {
         );
         const zoom = handle.map.getZoom();
 
-        // High zoom → reverse geocode (OSM Nominatim)
-        if (zoom >= 11) {
+        // === GH Pages: всегда Nominatim (нет proxy/CORS для WMS) ===
+        if (isProdGh || zoom >= 11) {
           try {
             const url = new URL('https://nominatim.openstreetmap.org/reverse');
             url.searchParams.set('format', 'jsonv2');
@@ -83,16 +84,23 @@ export default function MapWidget() {
 
             const html = rows
               ? `<div style="max-width:320px"><table style="border-collapse:collapse;font:12px/1.3 system-ui">${rows}</table></div>`
-              : `<div style="max-width:320px">📍 ${data.display_name ?? 'No address found'}</div>`;
+              : `<div style="max-width:320px">📍 ${data.display_name ?? (isProdGh ? 'Zoom in for details' : 'No address found')}</div>`;
 
             showPopup(handle, ll, html);
             return;
           } catch {
-            /* fall back to GFI */
+            if (isProdGh) {
+              showPopup(
+                handle,
+                ll,
+                `<div style="max-width:320px">Address not available</div>`,
+              );
+              return;
+            }
           }
         }
 
-        // Low zoom → WMS GFI (countries)
+        // === Dev: низкий зум — WMS GetFeatureInfo по странам (через Vite proxy) ===
         const url = await identifyWms(handle, ll, WMS_URL, {
           layers: 'ne:ne_10m_admin_0_countries',
         });
@@ -134,7 +142,7 @@ export default function MapWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sync WMS overlays with checkboxes
+  // sync WMS overlays with checkboxes (визуальный оверлей)
   useEffect(() => {
     if (!h || !ready) return;
     LAYERS.forEach((l) => {
