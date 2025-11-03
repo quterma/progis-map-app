@@ -9,12 +9,10 @@ https://quterma.github.io/progis-map-app/
 
 ## Features
 
-- Leaflet map with OSM base tiles
+- Leaflet map with CartoDB base tiles
 - Toggleable WMS overlay (OSM-WMS demo layer)
 - Identify (WMS GetFeatureInfo) → popup with feature attributes
-- Smart hybrid identify:
-  - reverse geocode (street/building) on high zoom via OpenStreetMap Nominatim
-  - country info via WMS on low zoom
+- Country information via WMS GetFeatureInfo
 - Optional auto-center to user geolocation (fallback → USA)
 - Modular folder structure: `domain / infrastructure / ui / shared`
 

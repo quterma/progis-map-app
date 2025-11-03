@@ -15,10 +15,14 @@ export function createMap(
   opts: { center: [number, number]; zoom: number },
 ): MapHandle {
   const map = L.map(el).setView(opts.center, opts.zoom);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19,
-  }).addTo(map);
+  // Using CartoDB base tiles instead of OSM
+  L.tileLayer(
+    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    {
+      attribution: '© CartoDB',
+      maxZoom: 19,
+    },
+  ).addTo(map);
   return { map, layers: {}, selection: null };
 }
 

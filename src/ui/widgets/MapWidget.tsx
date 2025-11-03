@@ -54,45 +54,8 @@ export default function MapWidget() {
           ll,
           `<small style="font:12px system-ui;opacity:.8">Loading…</small>`,
         );
-        const zoom = handle.map.getZoom();
 
-        // High zoom → reverse geocode (OSM Nominatim)
-        if (zoom >= 11) {
-          try {
-            const url = new URL('https://nominatim.openstreetmap.org/reverse');
-            url.searchParams.set('format', 'jsonv2');
-            url.searchParams.set('lat', String(ll.lat));
-            url.searchParams.set('lon', String(ll.lng));
-            url.searchParams.set('zoom', '18');
-            url.searchParams.set('addressdetails', '1');
-            const res = await fetch(url.toString(), {
-              headers: { 'Accept-Language': 'en' },
-            });
-            const data = await res.json();
-
-            const rows = Object.entries(data.address ?? {})
-              .slice(0, 15)
-              .map(
-                ([k, v]) =>
-                  `<tr>
-                  <td style="padding:2px 6px;font-weight:600;">${titleCase(String(k))}</td>
-                  <td style="padding:2px 6px;">${String(v)}</td>
-                </tr>`,
-              )
-              .join('');
-
-            const html = rows
-              ? `<div style="max-width:320px"><table style="border-collapse:collapse;font:12px/1.3 system-ui">${rows}</table></div>`
-              : `<div style="max-width:320px">📍 ${data.display_name ?? 'No address found'}</div>`;
-
-            showPopup(handle, ll, html);
-            return;
-          } catch {
-            /* fall back to GFI */
-          }
-        }
-
-        // Low zoom → WMS GFI (countries)
+        // WMS GetFeatureInfo for countries
         const url = await identifyWms(handle, ll, WMS_URL, {
           layers: 'ne:ne_10m_admin_0_countries',
         });
