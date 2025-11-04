@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   createMap,
-  addWms,
-  removeLayer,
   onMapClick,
   showPopup,
   destroy,
@@ -10,26 +8,17 @@ import {
   whenReady,
 } from '../../infrastructure/map/leafletAdapter';
 import { identifyWms } from '../../infrastructure/map/leafletAdapter';
-import { WMS_URL } from '../../shared/config/ogc';
-import { LAYERS } from '../../shared/config/layers';
-import LayersPanel from '../components/LayersPanel';
-import { titleCase } from '../../shared/lib/format';
+import { WMS_URL } from '../../infrastructure/config';
+import { titleCase } from '../../infrastructure/lib/format';
 
 export default function MapWidget() {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [h, setH] = useState<ReturnType<typeof createMap> | null>(null);
-  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [visible, setVisible] = useState<Record<string, boolean>>(
-    Object.fromEntries(LAYERS.map((l) => [l.id, false])),
-  );
 
   // init map once
   useEffect(() => {
     if (!ref.current) return;
     const handle = createMap(ref.current, { center: [37.8, -96], zoom: 4 });
-    setH(handle);
-    setReady(true);
 
     // геолокация → центр (без ошибок и гонок)
     if (navigator.geolocation) {
@@ -134,30 +123,5 @@ export default function MapWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sync WMS overlays with checkboxes
-  useEffect(() => {
-    if (!h || !ready) return;
-    LAYERS.forEach((l) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (visible[l.id]) addWms(h, l.id, l.url, l.params as any);
-      else removeLayer(h, l.id);
-    });
-  }, [visible, h, ready]);
-
-  const items = LAYERS.map((l) => ({
-    id: l.id,
-    title: l.title,
-    visible: visible[l.id],
-  }));
-
-  return (
-    <>
-      <LayersPanel
-        items={items}
-        disabled={!ready || busy}
-        onToggle={(id, v) => setVisible((prev) => ({ ...prev, [id]: v }))}
-      />
-      <div ref={ref} style={{ width: '100%', height: '100vh' }} />
-    </>
-  );
+  return <div ref={ref} style={{ width: '100%', height: '100vh' }} />;
 }

@@ -16,7 +16,13 @@ https://quterma.github.io/progis-map-app/
   - reverse geocode (street/building) on high zoom via OpenStreetMap Nominatim
   - country info via WMS on low zoom
 - Optional auto-center to user geolocation (fallback → USA)
-- Modular folder structure: `infrastructure / ui / shared`
+- Modular folder structure: `infrastructure / ui`
+
+## Architecture Updates
+
+**2025-11-04:** Configs centralized under `src/infrastructure/config` as single source of truth. Removed dead UI/config layers and legacy shared/ structure for cleaner, production-ready architecture.
+
+**2025-11-04:** Added comprehensive Russian JSDoc documentation to leafletAdapter.ts with detailed explanations of WMS GetFeatureInfo functionality and map interaction methods.
 
 ## Cleanup History
 
