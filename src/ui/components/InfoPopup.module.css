@@ -1,0 +1,36 @@
+.wrap {
+  width: 300px;
+  max-width: 300px;
+  font: 12px system-ui;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.label {
+  opacity: 0.7;
+}
+
+.value {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  opacity: 0.8;
+  font-style: italic;
+}

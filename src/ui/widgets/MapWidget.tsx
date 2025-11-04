@@ -8,6 +8,7 @@ import {
   whenReady,
 } from '../../infrastructure/map/leafletAdapter';
 import { identifyWms } from '../../infrastructure/map/leafletAdapter';
+import { fetchGfi, isHtmlWithTable } from '../../infrastructure/map/gfi';
 import {
   WMS_ENDPOINT,
   WMS_INFO_FORMAT,
@@ -56,37 +57,12 @@ export default function MapWidget() {
         // Log the exact GFI URL for debugging
         console.debug('GetFeatureInfo URL:', url);
 
-        // Fetch with retry logic for 502 errors
-        let response = await fetch(url);
-
-        // Retry once on 502 Bad Gateway
-        if (response.status === 502) {
-          console.debug('502 error, retrying after 300ms...');
-          await new Promise((resolve) => setTimeout(resolve, 300));
-          response = await fetch(url);
-        }
-
-        // Check for HTTP errors
-        if (response.status >= 400) {
-          let errorMsg = 'Service temporarily unavailable';
-          if (response.status === 502) {
-            errorMsg = 'Service temporarily unavailable';
-          } else if (response.status >= 400 && response.status < 500) {
-            errorMsg = 'No features – try zoom in or click closer';
-          }
-          showPopup(handle, ll, `<b>${errorMsg}</b>`);
-          return;
-        }
-
-        const text = await response.text();
+        const text = await fetchGfi(url);
 
         let html = '<b>No features – try zoom in or click closer</b>';
-
-        // Check if HTML contains actual feature data (has table rows)
-        if (text && text.trim() && text.includes('<tr>')) {
+        if (isHtmlWithTable(text)) {
           html = `<div style="max-width:320px;max-height:400px;overflow:auto">${text}</div>`;
         } else if (text && text.trim()) {
-          // Show raw response for debugging if no table rows found
           html = `<div style="max-width:320px;">
             <b>No features – try zoom in or click closer</b>
             <details style="margin-top:8px;font-size:11px;opacity:0.7;">
@@ -99,11 +75,9 @@ export default function MapWidget() {
         showPopup(handle, ll, html);
       } catch (e) {
         console.error('GetFeatureInfo error:', e);
-        showPopup(
-          handle,
-          ll,
-          `<b>Service temporarily unavailable</b><br/><small>${String(e)}</small>`,
-        );
+        const errorMsg =
+          e instanceof Error ? e.message : 'Service temporarily unavailable';
+        showPopup(handle, ll, `<b>${errorMsg}</b>`);
       } finally {
         setBusy(false);
       }

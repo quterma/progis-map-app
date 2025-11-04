@@ -7,16 +7,28 @@ import {
   WMS_BUFFER,
 } from './wms.config';
 
-export function whenReady(h: MapHandle, cb: () => void) {
-  h.map.whenReady(cb);
-}
-
 export type MapHandle = {
   map: LMap;
   layers: Record<string, LLayer>;
   selection?: LLayer | null;
 };
 
+/**
+ * Выполняет callback после полной загрузки карты.
+ * @param h MapHandle — объект карты.
+ * @param cb Функция обратного вызова.
+ */
+export function whenReady(h: MapHandle, cb: () => void) {
+  h.map.whenReady(cb);
+}
+
+/**
+ * Создаёт карту Leaflet с базовым фоном CartoDB.
+ * @param el HTML-элемент контейнера.
+ * @param opts.center Координаты центра [lat, lng].
+ * @param opts.zoom Начальный зум.
+ * @returns MapHandle — объект с экземпляром карты и зарегистрированными слоями.
+ */
 export function createMap(
   el: HTMLElement,
   opts: { center: [number, number]; zoom: number },
@@ -33,18 +45,33 @@ export function createMap(
   return { map, layers: {}, selection: null };
 }
 
+/**
+ * Изменяет центр и зум карты с анимацией.
+ * @param h MapHandle — объект карты.
+ * @param center Новые координаты центра [lat, lng].
+ * @param zoom Новый уровень зума.
+ * Особенности: использует requestAnimationFrame для корректного рендеринга.
+ */
 export function setView(h: MapHandle, center: [number, number], zoom: number) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m: any = h.map;
-  if (!m || !m._mapPane) return;
-
   requestAnimationFrame(() => {
-    if (!m._mapPane) return;
-    h.map.invalidateSize(false);
-    h.map.setView(center, zoom, { animate: true });
+    try {
+      h.map.invalidateSize(false);
+      h.map.setView(center, zoom, { animate: true });
+    } catch {
+      // map might be destroyed; ignore
+    }
   });
 }
 
+/**
+ * Добавляет WMS-слой на карту с заданными параметрами.
+ * @param h MapHandle — объект карты.
+ * @param id Уникальный идентификатор слоя.
+ * @param url Базовый URL WMS-сервиса.
+ * @param options Параметры WMS (layers, format, transparent и т.д.).
+ * @returns Созданный WMS-слой Leaflet.
+ * Особенности: автоматически удаляет предыдущий слой с тем же ID.
+ */
 export function addWms(
   h: MapHandle,
   id: string,
@@ -57,6 +84,11 @@ export function addWms(
   return wms;
 }
 
+/**
+ * Удаляет слой с карты по идентификатору.
+ * @param h MapHandle — объект карты.
+ * @param id Идентификатор слоя для удаления.
+ */
 export function removeLayer(h: MapHandle, id: string) {
   const l = h.layers[id];
   if (l) {
@@ -65,16 +97,32 @@ export function removeLayer(h: MapHandle, id: string) {
   }
 }
 
+/**
+ * Полностью уничтожает карту и освобождает ресурсы.
+ * @param h MapHandle — объект карты для уничтожения.
+ * Особенности: удаляет все слои, выделения и DOM-элементы карты.
+ */
 export function destroy(h: MapHandle) {
   clearSelection(h);
   Object.keys(h.layers).forEach((id) => removeLayer(h, id));
   h.map.remove();
 }
 
+/**
+ * Регистрирует обработчик кликов по карте.
+ * @param h MapHandle — объект карты.
+ * @param cb Функция обратного вызова, получающая координаты клика.
+ */
 export function onMapClick(h: MapHandle, cb: (ll: LatLng) => void) {
   h.map.on('click', (e) => cb(e.latlng));
 }
 
+/**
+ * Получает текущее состояние карты (центр, зум, CRS).
+ * @param h MapHandle — объект карты.
+ * @returns Объект с координатами центра, зумом и системой координат.
+ * Особенности: использует WMS_CRS (EPSG:4326) для совместимости с WMS.
+ */
 export function getView(h: MapHandle) {
   const c = h.map.getCenter();
   const z = h.map.getZoom();
@@ -85,12 +133,32 @@ export function getView(h: MapHandle) {
   };
 }
 
-export function showPopup(h: MapHandle, ll: LatLng, html: string) {
-  const p = L.popup().setLatLng(ll).openOn(h.map);
-  p.setContent(html);
+/**
+ * Показывает всплывающее окно с контентом в указанной точке.
+ * @param h MapHandle — объект карты.
+ * @param ll Координаты для размещения popup.
+ * @param content HTML-строка или DOM-элемент для отображения.
+ * @returns Созданный popup объект Leaflet.
+ */
+export function showPopup(
+  h: MapHandle,
+  ll: LatLng,
+  content: string | HTMLElement,
+): L.Popup {
+  const popup = L.popup().setLatLng(ll).openOn(h.map);
+  popup.setContent(content as string | HTMLElement);
+  return popup;
 }
 
 /** ---------- WMS GetFeatureInfo URL (1.1.1) ---------- */
+/**
+ * Строит URL для WMS GetFeatureInfo запроса.
+ * @param h MapHandle — объект карты для получения viewport и размеров.
+ * @param baseUrl Базовый URL WMS-сервиса.
+ * @param params Параметры: layers (обязательно), infoFormat (опционально).
+ * @returns URL объект с настроенными параметрами WMS 1.1.1.
+ * Особенности: использует EPSG:4326, BBOX в формате [minX,minY,maxX,maxY].
+ */
 function buildGfiUrl(
   h: MapHandle,
   baseUrl: string,
@@ -118,6 +186,15 @@ function buildGfiUrl(
   return url;
 }
 
+/**
+ * Создаёт URL для WMS GetFeatureInfo запроса в точке клика.
+ * @param h MapHandle — объект карты.
+ * @param ll Координаты клика (lat/lng).
+ * @param baseUrl Базовый URL WMS-сервиса.
+ * @param params Параметры: layers, infoFormat.
+ * @returns Строка с полным URL для GetFeatureInfo.
+ * Особенности: преобразует lat/lng в пиксельные координаты X,Y на карте.
+ */
 export async function identifyWms(
   h: MapHandle,
   ll: L.LatLng,
@@ -132,6 +209,10 @@ export async function identifyWms(
 }
 
 /** ---------- Selection helpers ---------- */
+/**
+ * Очищает текущее выделение на карте.
+ * @param h MapHandle — объект карты.
+ */
 export function clearSelection(h: MapHandle) {
   if (h.selection) {
     h.map.removeLayer(h.selection);
@@ -139,6 +220,13 @@ export function clearSelection(h: MapHandle) {
   }
 }
 
+/**
+ * Подсвечивает GeoJSON объект на карте красным цветом.
+ * @param h MapHandle — объект карты.
+ * @param geojson GeoJSON данные для отображения.
+ * @returns Созданный слой с выделением.
+ * Особенности: полигоны/линии как контуры, точки как circleMarker.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function highlightGeoJSON(h: MapHandle, geojson: any) {
   clearSelection(h);
@@ -150,6 +238,12 @@ export function highlightGeoJSON(h: MapHandle, geojson: any) {
   return h.selection;
 }
 
+/**
+ * Подсвечивает точку на карте красным маркером.
+ * @param h MapHandle — объект карты.
+ * @param ll Координаты точки для подсветки.
+ * @returns Созданный circleMarker.
+ */
 export function highlightPoint(h: MapHandle, ll: LatLng) {
   clearSelection(h);
   h.selection = L.circleMarker(ll, {
