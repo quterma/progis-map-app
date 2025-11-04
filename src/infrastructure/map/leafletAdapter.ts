@@ -1,4 +1,11 @@
 import L, { Map as LMap, Layer as LLayer, LatLng } from 'leaflet';
+import {
+  WMS_VERSION,
+  WMS_CRS,
+  WMS_INFO_FORMAT,
+  WMS_FEATURE_COUNT,
+  WMS_BUFFER,
+} from './wms.config';
 
 export function whenReady(h: MapHandle, cb: () => void) {
   h.map.whenReady(cb);
@@ -72,9 +79,9 @@ export function getView(h: MapHandle) {
   const c = h.map.getCenter();
   const z = h.map.getZoom();
   return {
-    center: { x: c.lng, y: c.lat, crs: 'EPSG:4326' },
+    center: { x: c.lng, y: c.lat, crs: WMS_CRS },
     zoom: z,
-    crs: 'EPSG:4326' as const,
+    crs: WMS_CRS,
   };
 }
 
@@ -97,15 +104,16 @@ function buildGfiUrl(
   const url = new URL(baseUrl, window.location.origin);
   url.searchParams.set('SERVICE', 'WMS');
   url.searchParams.set('REQUEST', 'GetFeatureInfo');
-  url.searchParams.set('VERSION', '1.1.1');
+  url.searchParams.set('VERSION', WMS_VERSION);
   url.searchParams.set('LAYERS', params.layers);
   url.searchParams.set('QUERY_LAYERS', params.layers);
-  url.searchParams.set('SRS', 'EPSG:4326');
+  url.searchParams.set('SRS', WMS_CRS);
   url.searchParams.set('BBOX', bbox);
   url.searchParams.set('WIDTH', String(size.x));
   url.searchParams.set('HEIGHT', String(size.y));
-  url.searchParams.set('INFO_FORMAT', params.infoFormat ?? 'application/json');
-  url.searchParams.set('FEATURE_COUNT', '10');
+  url.searchParams.set('INFO_FORMAT', params.infoFormat ?? WMS_INFO_FORMAT);
+  url.searchParams.set('FEATURE_COUNT', String(WMS_FEATURE_COUNT));
+  url.searchParams.set('BUFFER', String(WMS_BUFFER));
   url.searchParams.set('STYLES', '');
   return url;
 }

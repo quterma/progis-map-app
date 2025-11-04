@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   createMap,
-  addWms,
-  removeLayer,
   onMapClick,
   showPopup,
   destroy,
@@ -10,26 +8,20 @@ import {
   whenReady,
 } from '../../infrastructure/map/leafletAdapter';
 import { identifyWms } from '../../infrastructure/map/leafletAdapter';
-import { WMS_URL } from '../../shared/config/ogc';
-import { LAYERS } from '../../shared/config/layers';
-import LayersPanel from '../components/LayersPanel';
-import { titleCase } from '../../shared/lib/format';
+import {
+  WMS_ENDPOINT,
+  WMS_INFO_FORMAT,
+  WMS_LAYERS,
+} from '../../infrastructure/map/wms.config';
 
 export default function MapWidget() {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [h, setH] = useState<ReturnType<typeof createMap> | null>(null);
-  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [visible, setVisible] = useState<Record<string, boolean>>(
-    Object.fromEntries(LAYERS.map((l) => [l.id, false])),
-  );
 
   // init map once
   useEffect(() => {
     if (!ref.current) return;
     const handle = createMap(ref.current, { center: [37.8, -96], zoom: 4 });
-    setH(handle);
-    setReady(true);
 
     // геолокация → центр (без ошибок и гонок)
     if (navigator.geolocation) {
@@ -55,38 +47,62 @@ export default function MapWidget() {
           `<small style="font:12px system-ui;opacity:.8">Loading…</small>`,
         );
 
-        // WMS GetFeatureInfo for countries
-        const url = await identifyWms(handle, ll, WMS_URL, {
-          layers: 'ne:ne_10m_admin_0_countries',
+        // WMS GetFeatureInfo for populated places
+        const url = await identifyWms(handle, ll, WMS_ENDPOINT, {
+          layers: WMS_LAYERS.POPULATED,
+          infoFormat: WMS_INFO_FORMAT,
         });
-        const text = await (await fetch(url)).text();
 
-        let html = '<b>No features</b>';
-        try {
-          const json = JSON.parse(text);
-          const f = json?.features?.[0];
-          if (f?.properties) {
-            const rows = Object.entries(f.properties)
-              .slice(0, 20)
-              .map(
-                ([k, v]) =>
-                  `<tr>
-                  <td style="padding:2px 6px;font-weight:600;">${titleCase(String(k))}</td>
-                  <td style="padding:2px 6px;">${String(v)}</td>
-                </tr>`,
-              )
-              .join('');
-            html = `<div style="max-width:320px"><table style="border-collapse:collapse;font:12px/1.3 system-ui">${rows}</table></div>`;
-          }
-        } catch {
-          html = `<pre style="margin:0;max-width:320px;white-space:pre-wrap">${text.slice(0, 2000)}</pre>`;
+        // Log the exact GFI URL for debugging
+        console.debug('GetFeatureInfo URL:', url);
+
+        // Fetch with retry logic for 502 errors
+        let response = await fetch(url);
+
+        // Retry once on 502 Bad Gateway
+        if (response.status === 502) {
+          console.debug('502 error, retrying after 300ms...');
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          response = await fetch(url);
         }
+
+        // Check for HTTP errors
+        if (response.status >= 400) {
+          let errorMsg = 'Service temporarily unavailable';
+          if (response.status === 502) {
+            errorMsg = 'Service temporarily unavailable';
+          } else if (response.status >= 400 && response.status < 500) {
+            errorMsg = 'No features – try zoom in or click closer';
+          }
+          showPopup(handle, ll, `<b>${errorMsg}</b>`);
+          return;
+        }
+
+        const text = await response.text();
+
+        let html = '<b>No features – try zoom in or click closer</b>';
+
+        // Check if HTML contains actual feature data (has table rows)
+        if (text && text.trim() && text.includes('<tr>')) {
+          html = `<div style="max-width:320px;max-height:400px;overflow:auto">${text}</div>`;
+        } else if (text && text.trim()) {
+          // Show raw response for debugging if no table rows found
+          html = `<div style="max-width:320px;">
+            <b>No features – try zoom in or click closer</b>
+            <details style="margin-top:8px;font-size:11px;opacity:0.7;">
+              <summary>Debug info</summary>
+              <pre style="white-space:pre-wrap;max-height:200px;overflow:auto;">${text.slice(0, 1000)}</pre>
+            </details>
+          </div>`;
+        }
+
         showPopup(handle, ll, html);
       } catch (e) {
+        console.error('GetFeatureInfo error:', e);
         showPopup(
           handle,
           ll,
-          `<b>Identify error</b><br/><small>${String(e)}</small>`,
+          `<b>Service temporarily unavailable</b><br/><small>${String(e)}</small>`,
         );
       } finally {
         setBusy(false);
@@ -97,29 +113,8 @@ export default function MapWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sync WMS overlays with checkboxes
-  useEffect(() => {
-    if (!h || !ready) return;
-    LAYERS.forEach((l) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (visible[l.id]) addWms(h, l.id, l.url, l.params as any);
-      else removeLayer(h, l.id);
-    });
-  }, [visible, h, ready]);
-
-  const items = LAYERS.map((l) => ({
-    id: l.id,
-    title: l.title,
-    visible: visible[l.id],
-  }));
-
   return (
     <>
-      <LayersPanel
-        items={items}
-        disabled={!ready || busy}
-        onToggle={(id, v) => setVisible((prev) => ({ ...prev, [id]: v }))}
-      />
       <div ref={ref} style={{ width: '100%', height: '100vh' }} />
     </>
   );

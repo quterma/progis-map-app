@@ -10,9 +10,9 @@ https://quterma.github.io/progis-map-app/
 ## Features
 
 - Leaflet map with CartoDB base tiles
-- Toggleable WMS overlay (OSM-WMS demo layer)
-- Identify (WMS GetFeatureInfo) → popup with feature attributes
-- Country information via WMS GetFeatureInfo
+- WMS GetFeatureInfo identify on click → popup with feature attributes
+- Populated places information via ahocevar GeoServer
+- Enhanced error handling with retry logic for service availability
 - Optional auto-center to user geolocation (fallback → USA)
 - Modular folder structure: `domain / infrastructure / ui / shared`
 
@@ -26,8 +26,8 @@ npm run dev
 ## Architecture
 
 Domain – core types and use-cases (UI-agnostic)
-Infrastructure – Leaflet & OGC adapters
-UI – MapWidget + LayersPanel
-Shared – configs & utils
+Infrastructure – Leaflet & WMS adapters  
+UI – MapWidget with identify functionality
+Shared – WMS configs & utils
 
 For MVP the UI directly uses adapter calls; domain interfaces are prepared for future separation.
