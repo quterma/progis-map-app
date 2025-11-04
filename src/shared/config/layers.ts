@@ -12,17 +12,5 @@ export type WmsLayerDef = {
 };
 
 export const LAYERS: WmsLayerDef[] = [
-  {
-    id: 'osm',
-    title: 'OSM (WMS)',
-    url: 'https://ows.terrestris.de/osm/service?',
-    params: {
-      layers: 'OSM-WMS',
-      format: 'image/png',
-      transparent: true,
-      version: '1.1.1',
-      styles: '',
-    },
-  },
   // сюда легко добавить ещё { id:'...', title:'...', url:'...', params:{...} }
 ];
