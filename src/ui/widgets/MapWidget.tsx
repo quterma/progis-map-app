@@ -85,6 +85,12 @@ export default function MapWidget() {
         const url = await identifyWms(handle, ll, WMS_URL, {
           layers: 'ne:ne_10m_admin_0_countries',
         });
+
+        if (!url) {
+          showPopup(handle, ll, '<b>Failed to create WMS request</b>');
+          return;
+        }
+
         const text = await (await fetch(url)).text();
 
         let html = '<b>No features</b>';
